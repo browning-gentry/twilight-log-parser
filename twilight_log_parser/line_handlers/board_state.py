@@ -1,10 +1,9 @@
 import copy
 from typing import Dict
 
-
-from .base import LineHandler
 from .. import constants
-from ..core import InfluenceChange, Game
+from ..core import Game, InfluenceChange
+from .base import LineHandler
 
 
 class CleanupHandler(LineHandler):
@@ -173,7 +172,10 @@ class InPlayHandler(LineHandler):
     def __init__(self) -> None:
         """Initialize handler for card in/out of play lines"""
         super().__init__(
-            pattern=r"^(?!Turn \d+, US AR\d+:)(?P<card>.*?) is (?P<status>now|no longer) in play\.$"
+            pattern=(
+                r"^(?!Turn \d+, US AR\d+:)"
+                r"(?P<card>.*?) is (?P<status>now|no longer) in play\.$"
+            )
         )
 
     def handle(self, game: Game, data: Dict[str, str], _: str) -> None:
