@@ -80,7 +80,7 @@ class ReshuffleHandler(LineHandler):
     def __init__(self) -> None:
         """Initialize handler for deck reshuffle lines"""
         super().__init__(
-            pattern="\*RESHUFFLE\*",  # noqa: W605
+            pattern=r"\*RESHUFFLE\*",  # noqa: W605
         )
 
     def handle(self, game: Game, data: Dict[str, str], _: str) -> None:

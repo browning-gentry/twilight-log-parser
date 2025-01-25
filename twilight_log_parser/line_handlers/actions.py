@@ -199,7 +199,7 @@ class NonARPlayHandler(LineHandler):
             if prior_play_rec.play_type == constants.PlayType.RETURN_TO_HAND.value:
                 prior_play_rec = game.get_last_play_for_kwargs(
                     turn=prior_play_rec.turn,
-                    card=constants.SpecialCards.GRAIN_SALES_TO_SOVIETS.value,
+                    card=constants.SpecialCards.GRAIN_SALES_TO_SOVIETS,
                 )
                 # once we've found the row we're looking for,
                 # we increment it back up so we position this update correctly
