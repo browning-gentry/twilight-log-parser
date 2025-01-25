@@ -7,7 +7,7 @@ packages = ["twilight_log_parser"]
 
 [project]
 name = "twilight-log-parser"
-version = "0.1.0"
+version = "0.1.1"
 authors = [
   { name="Browning Gentry" },
 ]
