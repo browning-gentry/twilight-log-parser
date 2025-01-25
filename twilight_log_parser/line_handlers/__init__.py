@@ -1,39 +1,33 @@
 """Line handlers for parsing different types of game log lines."""
 
-from .base import LineHandler
-from .game_setup import (
-    PlayerSetupHandler,
-    HandicapHandler,
-    ScenarioHandler,
-    OptionalCardsHandler,
-    TimerHandler,
-)
 from .actions import (
     ARHandler,
-    PlaysCardHandler,
-    NonARPlayHandler,
-    HeadlineHandler,
     HeadlineDetailsHandler,
-    SpaceRaceHandler,
+    HeadlineHandler,
+    NonARPlayHandler,
+    PlaysCardHandler,
     RollHandler,
+    SpaceRaceHandler,
     TargetCountryHandler,
 )
-from .scoring import ScoreHandler, FinalScoreHandler
+from .base import LineHandler
 from .board_state import (
-    DefconHandler,
-    MilOpsHandler,
-    InPlayHandler,
-    UpdateInfluenceHandler,
     CleanupHandler,
+    DefconHandler,
+    InPlayHandler,
+    MilOpsHandler,
+    UpdateInfluenceHandler,
 )
-from .deck_state import (
-    RevealsHandler,
-    DiscardsHandler,
-    ReshuffleHandler,
+from .deck_state import DiscardsHandler, ReshuffleHandler, RevealsHandler
+from .game_setup import (
+    HandicapHandler,
+    OptionalCardsHandler,
+    PlayerSetupHandler,
+    ScenarioHandler,
+    TimerHandler,
 )
-from .special import (
-    GrainSalesReturnedHandler,
-)
+from .scoring import FinalScoreHandler, ScoreHandler
+from .special import GrainSalesReturnedHandler
 
 __all__ = [
     "LineHandler",

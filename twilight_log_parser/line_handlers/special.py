@@ -1,9 +1,9 @@
 import copy
 from typing import Dict
 
-from .base import LineHandler
 from .. import constants
 from ..core import Game
+from .base import LineHandler
 
 
 class GrainSalesReturnedHandler(LineHandler):
@@ -11,8 +11,10 @@ class GrainSalesReturnedHandler(LineHandler):
         """Initialize handler for Grain Sales return lines"""
         super().__init__(
             pattern=(
-                rf"(?P<action_executor>{constants.Side.US}|{constants.Side.USSR}) "
-                rf"returns (?P<card>.*) to ({constants.Side.US}|{constants.Side.USSR})"
+                rf"(?P<action_executor>{constants.Side.US.value}|"
+                rf"{constants.Side.USSR.value}) "
+                rf"returns (?P<card>.*) to ({constants.Side.US.value}|"
+                rf"{constants.Side.USSR.value})"
             )
         )
 

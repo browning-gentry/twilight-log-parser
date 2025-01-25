@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional, List, Set
+from typing import List, Optional, Set
 
 from .board import Board
 

@@ -76,7 +76,7 @@ class MilOpsHandler(LineHandler):
         """Initialize handler for military operations lines"""
         super().__init__(
             pattern=(
-                rf"(?P<player>{constants.Side.US}|{constants.Side.USSR}) "
+                rf"(?P<player>{constants.Side.US.value}|{constants.Side.USSR.value}) "
                 rf"Military Ops to (?P<mil_ops>\d+)"
             )
         )
@@ -99,7 +99,7 @@ class UpdateInfluenceHandler(LineHandler):
         """Initialize handler for influence update lines"""
         super().__init__(
             pattern=(
-                rf"(?P<player>{constants.Side.US}|{constants.Side.USSR}) "
+                rf"(?P<player>{constants.Side.US.value}|{constants.Side.USSR.value}) "
                 rf"(?P<direction>[+-])(?P<change>\d+) in (?P<country>.+?) "
                 rf"\[(?P<us_inf>\d+)\]\[(?P<ussr_inf>\d+)\]"
             )

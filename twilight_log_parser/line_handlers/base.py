@@ -1,5 +1,5 @@
-from abc import ABC, abstractmethod
 import re
+from abc import ABC, abstractmethod
 from typing import Dict, Pattern
 
 from ..core import Game

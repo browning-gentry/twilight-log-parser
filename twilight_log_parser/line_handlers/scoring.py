@@ -1,8 +1,8 @@
 from typing import Dict
 
-from .base import LineHandler
 from .. import constants
 from ..core import Game
+from .base import LineHandler
 
 
 class ScoreHandler(LineHandler):
@@ -11,7 +11,8 @@ class ScoreHandler(LineHandler):
         super().__init__(
             pattern=(
                 rf"(?!Turn \d+, Cleanup: : )(?!: : )"
-                rf"(?:.*Score is (?P<player>{constants.Side.US}|{constants.Side.USSR}) "
+                rf"(?:.*Score is (?P<player>{constants.Side.US.value}|"
+                rf"{constants.Side.USSR.value}) "
                 rf"(?P<score>\d+)|.*Score is even)"
             )
         )
@@ -36,8 +37,10 @@ class FinalScoreHandler(LineHandler):
         """Initialize handler for final score lines"""
         super().__init__(
             pattern=(
-                rf"(?:: : (?:{constants.Side.US}|{constants.Side.USSR}) gains \d+ VP\. "
-                rf"Score is (?P<player>{constants.Side.US}|{constants.Side.USSR}) "
+                rf"(?:: : (?:{constants.Side.US.value}|"
+                rf"{constants.Side.USSR.value}) gains \d+ VP\. "
+                rf"Score is (?P<player>{constants.Side.US.value}|"
+                rf"{constants.Side.USSR.value}) "
                 rf"(?P<score>\d+)\.|: : )"
             )
         )

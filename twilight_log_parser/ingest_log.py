@@ -1,6 +1,6 @@
 import argparse
-from pathlib import Path
 import traceback
+from pathlib import Path
 from typing import NoReturn
 
 from . import log_parser

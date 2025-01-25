@@ -3,15 +3,14 @@ Twilight Struggle game log parser.
 Parses and analyzes game logs from Twilight Struggle digital edition.
 """
 
-from typing import Optional, Tuple, Dict, Any, List
 import re
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Tuple
 
-from .utils import helpers
-
-from .core.game import Game
-from . import line_handlers as line_handlers
 from . import constants
+from . import line_handlers as line_handlers
+from .core.game import Game
+from .utils import helpers
 
 
 @dataclass

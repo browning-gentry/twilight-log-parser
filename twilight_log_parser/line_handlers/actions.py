@@ -3,8 +3,8 @@ import re
 from typing import Dict
 
 from .. import constants
-from .base import LineHandler
 from ..core import Game
+from .base import LineHandler
 
 
 class ARHandler(LineHandler):
@@ -13,14 +13,14 @@ class ARHandler(LineHandler):
         super().__init__(
             pattern=(
                 rf"Turn (?P<turn>\d+), "
-                rf"(?P<ar_owner>{constants.Side.US}|{constants.Side.USSR}) "
+                rf"(?P<ar_owner>{constants.Side.US.value}|{constants.Side.USSR.value}) "
                 rf"AR(?P<action_round>\d+): (?P<card>.*?): "
                 rf"(((?P<play_type>"
-                rf"{constants.PlayType.COUP}|"
-                rf"{constants.PlayType.PLACE_INFLUENCE}|"
-                rf"{constants.PlayType.EVENT}|"
-                rf"{constants.PlayType.SPACE_RACE}|"
-                rf"{constants.PlayType.REALIGNMENT}))|"
+                rf"{constants.PlayType.COUP.value}|"
+                rf"{constants.PlayType.PLACE_INFLUENCE.value}|"
+                rf"{constants.PlayType.EVENT.value}|"
+                rf"{constants.PlayType.SPACE_RACE.value}|"
+                rf"{constants.PlayType.REALIGNMENT.value}))|"
                 rf"((US|USSR) discards ((?P<discard_card>.*)))|"
                 rf"((.* Score is (?P<vp_player>.*) (?P<score>\d*).))|"
                 rf"((?P<Formosan>Formosan) Resolution\* is no longer in play.)).*"
@@ -37,12 +37,12 @@ class ARHandler(LineHandler):
         if vp_player is not None:
             updated_score = (
                 -int(data["score"])
-                if vp_player == constants.Side.US
+                if vp_player == constants.Side.US.value
                 else int(data["score"])
             )
             data["updated_score"] = updated_score
         if data["discard_card"]:
-            data["play_type"] = constants.PlayType.DISCARD
+            data["play_type"] = constants.PlayType.DISCARD.value
             data["discarded_cards"] = copy.deepcopy(
                 game.current_play.discarded_cards
             ).union({data["discard_card"]})
@@ -61,12 +61,12 @@ class ARHandler(LineHandler):
         action_round = int(data["action_round"])
 
         data["action_executor"] = data["ar_owner"]
-        if data["play_type"] == constants.PlayType.EVENT:
+        if data["play_type"] == constants.PlayType.EVENT.value:
             game.current_event = data["card"]
             if game.is_us_card(data["card"]):
-                data["action_executor"] = constants.Side.US
+                data["action_executor"] = constants.Side.US.value
             elif game.is_ussr_card(data["card"]):
-                data["action_executor"] = constants.Side.USSR
+                data["action_executor"] = constants.Side.USSR.value
 
             if data["card"].endswith("*"):
                 data["removed_cards"] = copy.deepcopy(
@@ -98,11 +98,12 @@ class NonARPlayHandler(LineHandler):
         """Initialize handler for non-action round play lines."""
         super().__init__(
             pattern=(
-                rf"(?P<play_type>{constants.PlayType.COUP}|"
-                rf"{constants.PlayType.PLACE_INFLUENCE}|"
-                rf"{constants.PlayType.EVENT}|"
-                rf"{constants.PlayType.SPACE_RACE}|"
-                rf"{constants.PlayType.REALIGNMENT}).*:.*"
+                rf"(?P<play_type>"
+                rf"{constants.PlayType.COUP.value}|"
+                rf"{constants.PlayType.PLACE_INFLUENCE.value}|"
+                rf"{constants.PlayType.EVENT.value}|"
+                rf"{constants.PlayType.SPACE_RACE.value}|"
+                rf"{constants.PlayType.REALIGNMENT.value}).*:.*"
             )
         )
 
@@ -112,7 +113,10 @@ class NonARPlayHandler(LineHandler):
         prior_play_rec = game.current_play
         order_in_ar_adjustment = 0
 
-        if prior_play_rec and prior_play_rec.play_type == constants.PlayType.DISCARD:
+        if (
+            prior_play_rec
+            and prior_play_rec.play_type == constants.PlayType.DISCARD.value
+        ):
             prior_non_discard_play_rec = game.get_last_non_discard_play_record(
                 ar_owner=prior_play_rec.ar_owner
             )
@@ -124,8 +128,10 @@ class NonARPlayHandler(LineHandler):
                 prior_play_rec = prior_non_discard_play_rec
                 data["action_executor"] = prior_play_rec.ar_owner
 
-        if data["play_type"] == constants.PlayType.EVENT:
-            event_pattern = rf"(?P<play_type>{constants.PlayType.EVENT}): (?P<card>.*)"
+        if data["play_type"] == constants.PlayType.EVENT.value:
+            event_pattern = (
+                rf"(?P<play_type>{constants.PlayType.EVENT.value}): (?P<card>.*)"
+            )
             event_match = re.match(event_pattern, line)
             data = event_match.groupdict()
             for play in game.get_all_plays_from_current_ar():
@@ -136,14 +142,14 @@ class NonARPlayHandler(LineHandler):
 
                     # skip if the prior play type is an event,
                     # because we already have a record for that
-                    if play.play_type == constants.PlayType.EVENT:
+                    if play.play_type == constants.PlayType.EVENT.value:
                         return
 
             game.current_event = data["card"]
             if game.is_us_card(data["card"]):
-                data["action_executor"] = constants.Side.US
+                data["action_executor"] = constants.Side.US.value
             else:
-                data["action_executor"] = constants.Side.USSR
+                data["action_executor"] = constants.Side.USSR.value
 
             if data["card"].endswith("*"):
                 data["removed_cards"] = copy.deepcopy(
@@ -173,10 +179,10 @@ class NonARPlayHandler(LineHandler):
                 for play in headline_plays:
                     if (
                         play.card == constants.SpecialCards.DEFECTORS
-                        and play.ar_owner == constants.Side.US
+                        and play.ar_owner == constants.Side.US.value
                     ):
                         ussr_headline_rec = game.get_ussr_headline()
-                        ussr_headline_rec.play_type = constants.PlayType.DISCARD
+                        ussr_headline_rec.play_type = constants.PlayType.DISCARD.value
                         return
             # deal w/ duplicate rows
             if prior_play_rec.card == data.get(
@@ -190,10 +196,10 @@ class NonARPlayHandler(LineHandler):
             # this is a special case for Grain Sales -
             # if a card is returned, the coup is with
             # Grain sales, though the "return" will be the prior play
-            if prior_play_rec.play_type == constants.PlayType.RETURN_TO_HAND:
+            if prior_play_rec.play_type == constants.PlayType.RETURN_TO_HAND.value:
                 prior_play_rec = game.get_last_play_for_kwargs(
                     turn=prior_play_rec.turn,
-                    card=constants.SpecialCards.GRAIN_SALES_TO_SOVIETS,
+                    card=constants.SpecialCards.GRAIN_SALES_TO_SOVIETS.value,
                 )
                 # once we've found the row we're looking for,
                 # we increment it back up so we position this update correctly
@@ -204,7 +210,7 @@ class NonARPlayHandler(LineHandler):
             # prior_play rec instead of creating a new row for this play
             elif (
                 prior_play_rec.play_type
-                == constants.PlayType.AWAITING_GRAIN_SALES_ACTION
+                == constants.PlayType.AWAITING_GRAIN_SALES_ACTION.value
             ):
                 order_in_ar_adjustment = -1
 
@@ -213,7 +219,7 @@ class NonARPlayHandler(LineHandler):
             # to the card that was revealed in an earlier log
             if (
                 prior_play_rec.card == constants.SpecialCards.MISSILE_ENVY
-                and data["play_type"] != constants.PlayType.EVENT
+                and data["play_type"] != constants.PlayType.EVENT.value
                 and len(prior_play_rec.revealed_cards) > 0
             ):
                 data["card"] = prior_play_rec.revealed_cards[0]
@@ -241,7 +247,7 @@ class HeadlineHandler(LineHandler):
         """Handle headline phase by processing both players' headline cards."""
         turn = int(data["turn"])
         action_round = 0
-        play_type = constants.PlayType.EVENT
+        play_type = constants.PlayType.EVENT.value
 
         discarded_cards = copy.deepcopy(game.current_play.discarded_cards)
         possible_draw_cards = copy.deepcopy(game.current_play.possible_draw_cards)
@@ -270,8 +276,8 @@ class HeadlineHandler(LineHandler):
             turn=turn,
             action_round=action_round,
             order_in_ar=0,
-            ar_owner=constants.Side.USSR,
-            action_executor=constants.Side.USSR,
+            ar_owner=constants.Side.USSR.value,
+            action_executor=constants.Side.USSR.value,
             card=data["ussr_card"],
             play_type=play_type,
             headline_order=None,
@@ -285,8 +291,8 @@ class HeadlineHandler(LineHandler):
             turn=turn,
             action_round=action_round,
             order_in_ar=0,
-            ar_owner=constants.Side.US,
-            action_executor=constants.Side.US,
+            ar_owner=constants.Side.US.value,
+            action_executor=constants.Side.US.value,
             card=data["us_card"],
             play_type=play_type,
             headline_order=None,
@@ -302,7 +308,7 @@ class HeadlineDetailsHandler(LineHandler):
         """Initialize handler for headline details lines."""
         super().__init__(
             pattern=(
-                rf"(?P<player>{constants.Side.US}|{constants.Side.USSR}) "
+                rf"(?P<player>{constants.Side.US.value}|{constants.Side.USSR.value}) "
                 r"Headlines (?P<card>.*)"
             )
         )
@@ -330,22 +336,24 @@ class HeadlineDetailsHandler(LineHandler):
             # Switch AR owners and action executors for both headline plays
             for play in headline_plays:
                 play.ar_owner = (
-                    constants.Side.US
-                    if play.ar_owner == constants.Side.USSR
-                    else constants.Side.USSR
+                    constants.Side.US.value
+                    if play.ar_owner == constants.Side.USSR.value
+                    else constants.Side.USSR.value
                 )
                 play.action_executor = (
-                    constants.Side.US
-                    if play.action_executor == constants.Side.USSR
-                    else constants.Side.USSR
+                    constants.Side.US.value
+                    if play.action_executor == constants.Side.USSR.value
+                    else constants.Side.USSR.value
                 )
 
         # Find the USSR and US plays
         ussr_play = next(
-            play for play in headline_plays if play.ar_owner == constants.Side.USSR
+            play
+            for play in headline_plays
+            if play.ar_owner == constants.Side.USSR.value
         )
         us_play = next(
-            play for play in headline_plays if play.ar_owner == constants.Side.US
+            play for play in headline_plays if play.ar_owner == constants.Side.US.value
         )
 
         # Compare ops values to determine order
@@ -366,8 +374,8 @@ class PlaysCardHandler(LineHandler):
         """Initialize handler for card play lines."""
         super().__init__(
             pattern=(
-                rf"(?P<action_executor>{constants.Side.US}|{constants.Side.USSR}) "
-                r"plays (?P<card>.*)"
+                rf"(?P<action_executor>{constants.Side.US.value}|"
+                rf"{constants.Side.USSR.value}) plays (?P<card>.*)"
             )
         )
 
@@ -386,7 +394,7 @@ class PlaysCardHandler(LineHandler):
         data["order_in_ar"] += 1
 
         if prior_play_rec.card == constants.SpecialCards.UN_INTERVENTION:
-            data["play_type"] = constants.PlayType.DISCARD
+            data["play_type"] = constants.PlayType.DISCARD.value
             data["discarded_cards"] = copy.deepcopy(
                 game.current_play.discarded_cards
             ).union({data["card"]})
@@ -400,7 +408,7 @@ class PlaysCardHandler(LineHandler):
         elif prior_play_rec.card == constants.SpecialCards.GRAIN_SALES_TO_SOVIETS:
             # at this point it's unclear how this card will get played
             # with grain sales - so we will use the following records to determine
-            data["play_type"] = constants.PlayType.AWAITING_GRAIN_SALES_ACTION
+            data["play_type"] = constants.PlayType.AWAITING_GRAIN_SALES_ACTION.value
         game.create_new_play(**data)
 
 
@@ -449,16 +457,16 @@ class RollHandler(LineHandler):
             pattern=rf"""(?x)
                     (?:
                         # Basic roll
-                        (?P<player>{constants.Side.US}|{constants.Side.USSR})\s+rolls\s+
-                        (?P<die_roll1>\d+)(?:\s.*)?$|
+                        (?P<player>{constants.Side.US.value}|{constants.Side.USSR.value})\s+
+                        rolls\s+(?P<die_roll1>\d+)(?:\s.*)?$|
                         # Space race
                         Die roll:\s*(?P<die_roll2>\d+)\s*--\s*(?:Success|Failed)!\s*
                         \(Needed\s*(?P<needed>\d+)\s*or\s*less\)|
                         # Realignment
                         (?:SUCCESS|FAILURE):\s*(?P<die_roll3>\d+)\s*\[\s*\+\s*
                         (?P<ops>\d+)\s*-\s*(?P<multiplier>\d+)x(?P<stability>\d+)\s*=\s*
-                        # War
                         (?P<net_result>-?\d+)\s*\]|
+                        # War
                         (?:VICTORY|DEFEAT):\s*(?P<die_roll4>\d+)
                         (?:\s*\(\+(?P<bonus>\d+)\))?(?:\s*\(-(?P<penalty>\d+)\))?
                         (?:\s*>=\s*|\s*<\s*)(?P<target>\d+)
@@ -489,7 +497,7 @@ class RollHandler(LineHandler):
         if player is None:
             player = current_play.action_executor
 
-        if player == constants.Side.US:
+        if player == constants.Side.US.value:
             current_play.us_die_rolls.append(die_roll)
         else:
             current_play.ussr_die_rolls.append(die_roll)

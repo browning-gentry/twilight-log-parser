@@ -1,13 +1,12 @@
 import copy
 import csv
 import uuid
-
-from typing import Dict, Set, List, Optional, Any
+from typing import Any, Dict, List, Optional, Set
 
 from frozendict import frozendict
 
-from ..utils import helpers
 from .. import constants
+from ..utils import helpers
 from .board import Board
 from .card import Card
 from .country import Country

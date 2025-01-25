@@ -1,9 +1,9 @@
 from typing import Dict
 
-from .base import LineHandler
 from .. import constants
 from ..core import Game
 from ..utils import helpers
+from .base import LineHandler
 
 
 class PlayerSetupHandler(LineHandler):
@@ -11,8 +11,8 @@ class PlayerSetupHandler(LineHandler):
         """Initialize handler for player setup lines"""
         super().__init__(
             pattern=(
-                r"^(?:SETUP: : )?(?P<playdek_id>\w+) will play as "
-                rf"(?P<player>{constants.Side.US}A|{constants.Side.USSR})\."
+                r"^(?:SETUP: : )?(?P<playdek_id>[^w]+?) will play as "
+                rf"(?P<player>{constants.Side.US.value}A|{constants.Side.USSR.value})\."
             ),
         )
 
@@ -29,8 +29,8 @@ class HandicapHandler(LineHandler):
         """Initialize handler for handicap lines"""
         super().__init__(
             pattern=(
-                rf"Handicap influence: (?P<player>{constants.Side.US}|"
-                rf"{constants.Side.USSR}) (?P<handicap>[+|-]\d+)"
+                rf"Handicap influence: (?P<player>{constants.Side.US.value}|"
+                rf"{constants.Side.USSR.value}) (?P<handicap>[+|-]\d+)"
             )
         )
 
