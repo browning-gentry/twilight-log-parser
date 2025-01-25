@@ -61,12 +61,12 @@ class ARHandler(LineHandler):
         action_round = int(data["action_round"])
 
         data["action_executor"] = data["ar_owner"]
-        if data["play_type"] == constants.PlayType.EVENT.value:
+        if data["play_type"] == constants.PlayType.EVENT:
             game.current_event = data["card"]
             if game.is_us_card(data["card"]):
-                data["action_executor"] = constants.Side.US.value
+                data["action_executor"] = constants.Side.US
             elif game.is_ussr_card(data["card"]):
-                data["action_executor"] = constants.Side.USSR.value
+                data["action_executor"] = constants.Side.USSR
 
             if data["card"].endswith("*"):
                 data["removed_cards"] = copy.deepcopy(
@@ -75,6 +75,10 @@ class ARHandler(LineHandler):
                 data["discarded_cards"] = copy.deepcopy(
                     game.current_play.discarded_cards
                 ).difference({data["card"]})
+            else:
+                data["discarded_cards"] = copy.deepcopy(
+                    game.current_play.discarded_cards
+                ).union({data["card"]})
         else:
             data["discarded_cards"] = copy.deepcopy(
                 game.current_play.discarded_cards
