@@ -3,6 +3,7 @@ from typing import Dict
 
 from .. import constants
 from ..core import Game
+from ..utils.card_state import update_card_state
 from .base import LineHandler
 
 
@@ -22,12 +23,19 @@ class RevealsHandler(LineHandler):
         if data["card"] not in game.current_play.revealed_cards:
             game.current_play.revealed_cards.append(data["card"])
 
-        game.current_play.cards_in_hands = copy.deepcopy(
-            game.current_play.cards_in_hands
-        ).union({data["card"]})
-        game.current_play.possible_draw_cards = copy.deepcopy(
-            game.current_play.possible_draw_cards
-        ).difference({data["card"]})
+        card_state_data = update_card_state(
+            data["card"],
+            play_type=constants.PlayType.REVEALS,
+            discarded_cards=game.current_play.discarded_cards,
+            removed_cards=game.current_play.removed_cards,
+            possible_draw_cards=game.current_play.possible_draw_cards,
+            cards_in_hands=game.current_play.cards_in_hands,
+        )
+
+        game.current_play.discarded_cards = card_state_data["discarded_cards"]
+        game.current_play.removed_cards = card_state_data["removed_cards"]
+        game.current_play.possible_draw_cards = card_state_data["possible_draw_cards"]
+        game.current_play.cards_in_hands = card_state_data["cards_in_hands"]
 
 
 class DiscardsHandler(LineHandler):
@@ -55,23 +63,22 @@ class DiscardsHandler(LineHandler):
                 return
 
         prior_play_rec = game.get_copy_of_current_play_cleaned_up()
-
         data = {**vars(prior_play_rec), **data}
 
         if data["order_in_ar"] is not None:
             data["order_in_ar"] += 1
 
         data["play_type"] = constants.PlayType.DISCARD
-        data["discarded_cards"] = copy.deepcopy(
-            game.current_play.discarded_cards
-        ).union({data["card"]})
-
-        data["possible_draw_cards"] = copy.deepcopy(
-            game.current_play.possible_draw_cards
-        ).difference({data["card"]})
-        data["cards_in_hands"] = copy.deepcopy(
-            game.current_play.cards_in_hands
-        ).difference({data["card"]})
+        data.update(
+            update_card_state(
+                data["card"],
+                play_type=constants.PlayType.DISCARD.value,
+                discarded_cards=game.current_play.discarded_cards,
+                removed_cards=game.current_play.removed_cards,
+                possible_draw_cards=game.current_play.possible_draw_cards,
+                cards_in_hands=game.current_play.cards_in_hands,
+            )
+        )
 
         game.create_new_play(**data)
 
@@ -121,7 +128,7 @@ class ReshuffleHandler(LineHandler):
         game.create_new_play(
             play_type=constants.PlayType.RESHUFFLE,
             action_round=-1 if is_headline else game.current_play.action_round,
-            order_in_ar=0 if is_headline else game.current_play.order_in_ar + 1,
+            order_in_ar=0 if is_headline else (game.current_play.order_in_ar or 0) + 1,
             turn=game.current_turn,
             card=None,
             ar_owner=None,

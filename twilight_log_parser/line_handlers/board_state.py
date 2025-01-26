@@ -61,7 +61,7 @@ class CleanupHandler(LineHandler):
 class DefconHandler(LineHandler):
     def __init__(self) -> None:
         """Initialize handler for DEFCON change lines"""
-        super().__init__(pattern=r"DEFCON degrades to (?P<defcon>\d)")
+        super().__init__(pattern=r"DEFCON (?:degrades|improves) to (?P<defcon>\d)")
 
     def handle(self, game: Game, data: Dict[str, str], _: str) -> None:
         """Handle DEFCON changes by updating DEFCON level"""

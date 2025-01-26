@@ -244,10 +244,10 @@ class Game:
         sorted_plays = sorted(
             self.plays,
             key=lambda x: (
-                x.turn,
-                x.action_round,
-                x.ar_owner[::-1] if x.ar_owner else "",
-                x.order_in_ar,
+                x.turn if x.turn is not None else float("-inf"),
+                x.action_round if x.action_round is not None else float("-inf"),
+                x.ar_owner[::-1] if x.ar_owner else None,
+                x.order_in_ar if x.order_in_ar is not None else float("-inf"),
             ),
         )
 

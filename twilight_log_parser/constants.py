@@ -26,6 +26,7 @@ class PlayType(str, Enum):
     COUP = "Coup"
     REALIGNMENT = "Realignment"
     RESHUFFLE = "Reshuffle"
+    REVEALS = "Reveals"
 
 
 class CardStatus(str, Enum):
@@ -54,6 +55,12 @@ class SpecialCards:
     DEFECTORS = "Defectors"
     MISSILE_ENVY = "Missile Envy"
     UN_INTERVENTION = "UN Intervention"
+    STAR_WARS = "Star Wars*"
+    WARGAMES = "Wargames*"
+    OUR_MAN_IN_TEHRAN = "Our Man in Tehran*"
+    NATO = "NATO*"
+    KITCHEN_DEBATES = "Kitchen Debates*"
+    STICKY_IF_CARDS = [STAR_WARS, WARGAMES, OUR_MAN_IN_TEHRAN, NATO, KITCHEN_DEBATES]
 
 
 CHUNK_END_LINES = ("HeadlineLine", "ARLine", "FinalScoringLine", "CleanupLine")

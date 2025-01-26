@@ -117,6 +117,9 @@ class LogParser:
             matched, data = self._parse_with_regex(line, handler.pattern)
             if matched:
                 return handler_name, data
+
+        # if len(line) > 10:
+        #     print(f'could not match: {line}')
         return None, None
 
     def _update_situation(self, line_group: List[Dict[str, Any]], game: Game) -> None:
@@ -132,23 +135,25 @@ class LogParser:
             # Sort plays after each update
             game.plays.sort(
                 key=lambda x: (
-                    x.turn,
-                    x.action_round,
+                    x.turn if x.turn is not None else float("-inf"),
+                    x.action_round if x.action_round is not None else float("-inf"),
                     x.ar_owner[::-1] if x.ar_owner else "",
-                    x.order_in_ar,
-                )
+                    x.order_in_ar if x.order_in_ar is not None else float("-inf"),
+                ),
             )
 
-        self._validate_and_cleanup_line_group(game)
+        self._validate_and_cleanup_line_group(line_group, game)
 
-    def _validate_and_cleanup_line_group(self, game: Game) -> None:
+    def _validate_and_cleanup_line_group(
+        self, line_group: List[Dict[str, Any]], game: Game
+    ) -> None:
         """
         Validates and cleans up a group of plays after processing.
         Ensures the action round owner
         is properly credited with plays and fixes any misattributed die rolls.
         """
         if 0 <= game.current_ar <= 8:
-            line_group_plays = game.get_all_plays_from_last_ar()
+            line_group_plays = game.get_all_plays_from_current_ar()
             if line_group_plays is not None and len(line_group_plays) > 0:
                 did_owner_get_play = False
                 for play in line_group_plays:
@@ -168,3 +173,23 @@ class LogParser:
                             -1
                         ].ussr_die_rolls
                         line_group_plays[-1].ussr_die_rolls = []
+
+                # if its a sticky if card, and it got evented in headline,
+                # we need to check that it actually got evented
+                for play in line_group_plays:
+                    if play.card in constants.SpecialCards.STICKY_IF_CARDS:
+                        sticky_card_evented = False
+                        if play.play_type == constants.PlayType.EVENT and (
+                            play.action_round == 0
+                        ):
+                            for line in line_group:
+                                if (
+                                    line.get("data")
+                                    and line["data"].get("play_type")
+                                    == constants.PlayType.EVENT
+                                ):
+                                    sticky_card_evented = True
+                        if sticky_card_evented:
+                            for play_to_cleanup in line_group_plays:
+                                play_to_cleanup.discarded_cards.add(play.card)
+                                play_to_cleanup.removed_cards.discard(play.card)

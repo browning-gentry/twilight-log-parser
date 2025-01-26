@@ -4,6 +4,7 @@ from typing import Dict
 
 from .. import constants
 from ..core import Game
+from ..utils.card_state import update_card_state
 from .base import LineHandler
 
 
@@ -22,7 +23,8 @@ class ARHandler(LineHandler):
                 rf"{constants.PlayType.SPACE_RACE.value}|"
                 rf"{constants.PlayType.REALIGNMENT.value}))|"
                 rf"((US|USSR) discards ((?P<discard_card>.*)))|"
-                rf"((.* Score is (?P<vp_player>.*) (?P<score>\d*).))|"
+                rf"((.* Score is ((?P<vp_player>.*) (?P<score>\d*)|"
+                rf"(?P<even_score>even)).))|"
                 rf"((?P<Formosan>Formosan) Resolution\* is no longer in play.)).*"
             )
         )
@@ -34,18 +36,29 @@ class ARHandler(LineHandler):
         # Leave event type empty
         # since it will be filled in by later log lines
         vp_player = data.get("vp_player")
-        if vp_player is not None:
-            updated_score = (
-                -int(data["score"])
-                if vp_player == constants.Side.US.value
-                else int(data["score"])
-            )
+        even_score = data.get("even_score")
+        if vp_player is not None or even_score is not None:
+            if even_score:
+                updated_score = 0
+            else:
+                updated_score = (
+                    -int(data["score"])
+                    if vp_player == constants.Side.US.value
+                    else int(data["score"])
+                )
             data["updated_score"] = updated_score
         if data["discard_card"]:
             data["play_type"] = constants.PlayType.DISCARD.value
-            data["discarded_cards"] = copy.deepcopy(
-                game.current_play.discarded_cards
-            ).union({data["discard_card"]})
+            data.update(
+                update_card_state(
+                    data["discard_card"],
+                    play_type=constants.PlayType.DISCARD.value,
+                    discarded_cards=game.current_play.discarded_cards,
+                    removed_cards=game.current_play.removed_cards,
+                    possible_draw_cards=game.current_play.possible_draw_cards,
+                    cards_in_hands=game.current_play.cards_in_hands,
+                )
+            )
         # formoson cancel is handled pretty weirdly - cancel the
         # effect and play type comes in a non-ar line later
         if data["Formosan"]:
@@ -55,6 +68,7 @@ class ARHandler(LineHandler):
             )
         del data["vp_player"]
         del data["score"]
+        del data["even_score"]
         del data["discard_card"]
         del data["Formosan"]
 
@@ -68,28 +82,21 @@ class ARHandler(LineHandler):
             elif game.is_ussr_card(data["card"]):
                 data["action_executor"] = constants.Side.USSR
 
-            if data["card"].endswith("*"):
-                data["removed_cards"] = copy.deepcopy(
-                    game.current_play.removed_cards
-                ).union({data["card"]})
-                data["discarded_cards"] = copy.deepcopy(
-                    game.current_play.discarded_cards
-                ).difference({data["card"]})
-            else:
-                data["discarded_cards"] = copy.deepcopy(
-                    game.current_play.discarded_cards
-                ).union({data["card"]})
-        else:
-            data["discarded_cards"] = copy.deepcopy(
-                game.current_play.discarded_cards
-            ).union({data["card"]})
+        data.update(
+            update_card_state(
+                data["card"],
+                play_type=data["play_type"],
+                discarded_cards=game.current_play.discarded_cards,
+                removed_cards=game.current_play.removed_cards,
+                possible_draw_cards=game.current_play.possible_draw_cards,
+                cards_in_hands=game.current_play.cards_in_hands,
+            )
+        )
 
-        data["possible_draw_cards"] = copy.deepcopy(
-            game.current_play.possible_draw_cards
-        ).difference({data["card"]})
-        data["cards_in_hands"] = copy.deepcopy(
-            game.current_play.cards_in_hands
-        ).difference({data["card"]})
+        # handle wargames -
+        # if data['card'] != 'Wargames*' and 'Wargames*' in data['removed_cards']:
+        #     data['removed_cards'].remove('Wargames*')
+        #     data['discarded_cards'].add('Wargames*')
 
         data["order_in_ar"] = 0
         data["turn"] = int(data["turn"])
@@ -147,6 +154,59 @@ class NonARPlayHandler(LineHandler):
                     # skip if the prior play type is an event,
                     # because we already have a record for that
                     if play.play_type == constants.PlayType.EVENT.value:
+                        # deal w/ defectors discard
+                        if (
+                            data.get("card") == constants.SpecialCards.DEFECTORS
+                            and prior_play_rec.action_round == 0
+                        ):
+                            headline_plays = game.get_all_plays_from_current_ar()
+                            for play in headline_plays:
+                                if (
+                                    play.card == constants.SpecialCards.DEFECTORS
+                                    and play.ar_owner == constants.Side.US.value
+                                ):
+                                    ussr_headline_rec = game.get_ussr_headline()
+                                    ussr_headline_rec.play_type = (
+                                        constants.PlayType.DISCARD.value
+                                    )
+                                    updated_card_states = update_card_state(
+                                        ussr_headline_rec.card,
+                                        play_type=constants.PlayType.DISCARD.value,
+                                        discarded_cards=(
+                                            prior_play_rec.discarded_cards
+                                            if not data.get("discarded_cards")
+                                            else data["discarded_cards"]
+                                        ),
+                                        removed_cards=(
+                                            prior_play_rec.removed_cards
+                                            if not data.get("removed_cards")
+                                            else data["removed_cards"]
+                                        ),
+                                        possible_draw_cards=(
+                                            prior_play_rec.possible_draw_cards
+                                            if not data.get("possible_draw_cards")
+                                            else data["possible_draw_cards"]
+                                        ),
+                                        cards_in_hands=(
+                                            prior_play_rec.cards_in_hands
+                                            if not data.get("cards_in_hands")
+                                            else data["cards_in_hands"]
+                                        ),
+                                        is_defectors_discard=True,
+                                    )
+                                    for fix_card_state_play in headline_plays:
+                                        fix_card_state_play.discarded_cards = (
+                                            updated_card_states["discarded_cards"]
+                                        )
+                                        fix_card_state_play.removed_cards = (
+                                            updated_card_states["removed_cards"]
+                                        )
+                                        fix_card_state_play.possible_draw_cards = (
+                                            updated_card_states["possible_draw_cards"]
+                                        )
+                                        fix_card_state_play.cards_in_hands = (
+                                            updated_card_states["cards_in_hands"]
+                                        )
                         return
 
             game.current_event = data["card"]
@@ -155,39 +215,30 @@ class NonARPlayHandler(LineHandler):
             else:
                 data["action_executor"] = constants.Side.USSR.value
 
-            if data["card"].endswith("*"):
-                data["removed_cards"] = copy.deepcopy(
-                    game.current_play.removed_cards
-                ).union({data["card"]})
-                data["discarded_cards"] = copy.deepcopy(
-                    game.current_play.discarded_cards
-                ).difference({data["card"]})
-                data["cards_in_hands"] = copy.deepcopy(
-                    game.current_play.cards_in_hands
-                ).difference({data["card"]})
+            if data["card"] != "The China Card":
+                data.update(
+                    update_card_state(
+                        data["card"],
+                        play_type=data["play_type"],
+                        discarded_cards=game.current_play.discarded_cards,
+                        removed_cards=game.current_play.removed_cards,
+                        possible_draw_cards=game.current_play.possible_draw_cards,
+                        cards_in_hands=game.current_play.cards_in_hands,
+                    )
+                )
         else:
-            if data.get("card"):
-                data["discarded_cards"] = copy.deepcopy(
-                    game.current_play.discarded_cards
-                ).union({data["card"]})
-                data["cards_in_hands"] = copy.deepcopy(
-                    game.current_play.cards_in_hands
-                ).difference({data["card"]})
+            if data.get("card") and data["card"] != "The China Card":
+                data.update(
+                    update_card_state(
+                        data["card"],
+                        play_type=data["play_type"],
+                        discarded_cards=game.current_play.discarded_cards,
+                        removed_cards=game.current_play.removed_cards,
+                        possible_draw_cards=game.current_play.possible_draw_cards,
+                        cards_in_hands=game.current_play.cards_in_hands,
+                    )
+                )
         if prior_play_rec and data:
-            # deal w/ defectors discard
-            if (
-                data.get("card") == constants.SpecialCards.DEFECTORS
-                and prior_play_rec.action_round == 0
-            ):
-                headline_plays = game.get_all_plays_from_current_ar()
-                for play in headline_plays:
-                    if (
-                        play.card == constants.SpecialCards.DEFECTORS
-                        and play.ar_owner == constants.Side.US.value
-                    ):
-                        ussr_headline_rec = game.get_ussr_headline()
-                        ussr_headline_rec.play_type = constants.PlayType.DISCARD.value
-                        return
             # deal w/ duplicate rows
             if prior_play_rec.card == data.get(
                 "card"
@@ -258,23 +309,28 @@ class HeadlineHandler(LineHandler):
         removed_cards = copy.deepcopy(game.current_play.removed_cards)
         cards_in_hands = copy.deepcopy(game.current_play.cards_in_hands)
 
-        if data["ussr_card"].endswith("*"):
-            removed_cards = removed_cards.union({data["ussr_card"]})
-            possible_draw_cards = possible_draw_cards.difference({data["ussr_card"]})
-            cards_in_hands = cards_in_hands.difference({data["ussr_card"]})
-        else:
-            discarded_cards = discarded_cards.union({data["ussr_card"]})
-            possible_draw_cards = possible_draw_cards.difference({data["ussr_card"]})
-            cards_in_hands = cards_in_hands.difference({data["ussr_card"]})
+        card_state = update_card_state(
+            data["ussr_card"],
+            play_type=constants.PlayType.EVENT.value,
+            discarded_cards=discarded_cards,
+            removed_cards=removed_cards,
+            possible_draw_cards=possible_draw_cards,
+            cards_in_hands=cards_in_hands,
+        )
 
-        if data["us_card"].endswith("*"):
-            removed_cards = removed_cards.union({data["us_card"]})
-            possible_draw_cards = possible_draw_cards.difference({data["us_card"]})
-            cards_in_hands = cards_in_hands.difference({data["us_card"]})
-        else:
-            discarded_cards = discarded_cards.union({data["us_card"]})
-            possible_draw_cards = possible_draw_cards.difference({data["us_card"]})
-            cards_in_hands = cards_in_hands.difference({data["us_card"]})
+        card_state = update_card_state(
+            data["us_card"],
+            play_type=constants.PlayType.EVENT.value,
+            discarded_cards=card_state["discarded_cards"],
+            removed_cards=card_state["removed_cards"],
+            possible_draw_cards=card_state["possible_draw_cards"],
+            cards_in_hands=card_state["cards_in_hands"],
+        )
+
+        discarded_cards = card_state["discarded_cards"]
+        removed_cards = card_state["removed_cards"]
+        possible_draw_cards = card_state["possible_draw_cards"]
+        cards_in_hands = card_state["cards_in_hands"]
 
         game.create_new_play(
             turn=turn,
@@ -399,9 +455,10 @@ class PlaysCardHandler(LineHandler):
 
         if prior_play_rec.card == constants.SpecialCards.UN_INTERVENTION:
             data["play_type"] = constants.PlayType.DISCARD.value
-            data["discarded_cards"] = copy.deepcopy(
-                game.current_play.discarded_cards
-            ).union({data["card"]})
+            if data["card"] != "The China Card":
+                data["discarded_cards"] = copy.deepcopy(
+                    game.current_play.discarded_cards
+                ).union({data["card"]})
 
             data["possible_draw_cards"] = copy.deepcopy(
                 game.current_play.possible_draw_cards
@@ -413,6 +470,16 @@ class PlaysCardHandler(LineHandler):
             # at this point it's unclear how this card will get played
             # with grain sales - so we will use the following records to determine
             data["play_type"] = constants.PlayType.AWAITING_GRAIN_SALES_ACTION.value
+        data.update(
+            update_card_state(
+                data["card"],
+                play_type=data["play_type"],
+                discarded_cards=game.current_play.discarded_cards,
+                removed_cards=game.current_play.removed_cards,
+                possible_draw_cards=game.current_play.possible_draw_cards,
+                cards_in_hands=game.current_play.cards_in_hands,
+            )
+        )
         game.create_new_play(**data)
 
 
@@ -464,16 +531,19 @@ class RollHandler(LineHandler):
                         (?P<player>{constants.Side.US.value}|{constants.Side.USSR.value})\s+
                         rolls\s+(?P<die_roll1>\d+)(?:\s.*)?$|
                         # Space race
-                        Die roll:\s*(?P<die_roll2>\d+)\s*--\s*(?:Success|Failed)!\s*
+                        Die\s+roll:\s*(?P<die_roll2>\d+)\s*--\s*(?:Success|Failed)!\s*
                         \(Needed\s*(?P<needed>\d+)\s*or\s*less\)|
                         # Realignment
                         (?:SUCCESS|FAILURE):\s*(?P<die_roll3>\d+)\s*\[\s*\+\s*
-                        (?P<ops>\d+)\s*-\s*(?P<multiplier>\d+)x(?P<stability>\d+)\s*=\s*
+                        (?P<ops>\d+)(?:\s*(?:\(\+\d+\)|\(-\d+\))?)?\s*-\s*(?P<multiplier>\d+)x(?P<stability>\d+)\s*=\s*
                         (?P<net_result>-?\d+)\s*\]|
                         # War
                         (?:VICTORY|DEFEAT):\s*(?P<die_roll4>\d+)
                         (?:\s*\(\+(?P<bonus>\d+)\))?(?:\s*\(-(?P<penalty>\d+)\))?
-                        (?:\s*>=\s*|\s*<\s*)(?P<target>\d+)
+                        (?:\s*>=\s*|\s*<\s*)(?P<target>\d+)|
+                        # Trap
+                        Trap\s+Roll:\s*(?P<die_roll5>\d+)\s*(?:>|<=)\s*\d+\s*--\s*
+                        (?:Trap\s+Remains\s+in\s+Effect|Trap\s+Escaped)
                     )"""
         )
 

@@ -11,17 +11,18 @@ class PlayerSetupHandler(LineHandler):
         """Initialize handler for player setup lines"""
         super().__init__(
             pattern=(
-                r"^(?:SETUP: : )?(?P<playdek_id>[^w]+?) will play as "
-                rf"(?P<player>{constants.Side.US.value}A|{constants.Side.USSR.value})\."
+                r"^(?:SETUP: : )?(?P<playdek_id>.+?)\s+will play as "
+                rf"(?P<player>{constants.Side.US.value}(?:A)?|"
+                rf"{constants.Side.USSR.value})\.$"
             ),
         )
 
     def handle(self, game: Game, data: Dict, _: str) -> None:
         """Handle player setup by setting player IDs"""
         if data["player"] == constants.Side.USSR:
-            game.ussr_player = data["playdek_id"]
-        if data["player"] == constants.Side.US + "A":
-            game.us_player = data["playdek_id"]
+            game.ussr_player = data["playdek_id"].strip()
+        if data["player"] in (constants.Side.US, constants.Side.US + "A"):
+            game.us_player = data["playdek_id"].strip()
 
 
 class HandicapHandler(LineHandler):

@@ -10,7 +10,8 @@ class ScoreHandler(LineHandler):
         """Initialize handler for score lines"""
         super().__init__(
             pattern=(
-                rf"(?!Turn \d+, Cleanup: : )(?!: : )"
+                rf"(?!Turn \d+, Cleanup: : )(?!: : )(?!Turn \d+, "
+                rf"(?:{constants.Side.US.value}|{constants.Side.USSR.value}) AR\d+:)"
                 rf"(?:.*Score is (?P<player>{constants.Side.US.value}|"
                 rf"{constants.Side.USSR.value}) "
                 rf"(?P<score>\d+)|.*Score is even)"

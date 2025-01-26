@@ -49,6 +49,16 @@ def main() -> NoReturn:
         print(f"Winner: {game.winning_side} ({game.win_type})")
         print(f"Output written to: {output_csv}")
 
+        # for play in game.plays:
+        #     print(f'Turn: {play.turn}, Action_round: {play.action_round}')
+        #     print(f'Card: {play.card}')
+        #     print(f'Number of cards in hands: {len(play.cards_in_hands)}')
+        #     print(f'Number of cards discarded: {len(play.discarded_cards)}')
+        #     print(f'Number of cards removed: {len(play.removed_cards)}')
+        #     print(
+        #       f'Number of cards possible to draw: {len(play.possible_draw_cards)}'
+        #     )
+
     except FileNotFoundError:
         print(f"Error: Could not find log file at {log_path}")
     except Exception:
