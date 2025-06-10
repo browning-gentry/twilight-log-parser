@@ -35,3 +35,6 @@ ENV/
 # Project specific
 output_files/
 notes.txt
+
+.DS_Store
+**/.DS_Store
