@@ -154,9 +154,11 @@ class NonARPlayHandler(LineHandler):
                     # skip if the prior play type is an event,
                     # because we already have a record for that
                     if play.play_type == constants.PlayType.EVENT.value:
-                        # if we're in the headline phase, make sure we update the existing record properly
+                        # if we're in the headline phase, make sure we
+                        # update the existing record properly
                         # there's a case where the first headline changes the game state, and we
-                        # need to make sure that we're updating the existing record properly to reflect that
+                        # need to make sure that we're updating the
+                        # existing record properly to reflect that
                         if play.action_round == 0:
                             if play.headline_order == 1:
                                 prior_play_rec = game.get_first_headline_play()
