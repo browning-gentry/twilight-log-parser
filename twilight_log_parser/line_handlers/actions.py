@@ -154,6 +154,21 @@ class NonARPlayHandler(LineHandler):
                     # skip if the prior play type is an event,
                     # because we already have a record for that
                     if play.play_type == constants.PlayType.EVENT.value:
+                        # if we're in the headline phase, make sure we update the existing record properly
+                        # there's a case where the first headline changes the game state, and we
+                        # need to make sure that we're updating the existing record properly to reflect that
+                        if play.action_round == 0:
+                            if play.headline_order == 1:
+                                prior_play_rec = game.get_first_headline_play()
+                                play.discarded_cards = prior_play_rec.discarded_cards
+                                play.removed_cards = prior_play_rec.removed_cards
+                                play.possible_draw_cards = (
+                                    prior_play_rec.possible_draw_cards
+                                )
+                                play.cards_in_hands = prior_play_rec.cards_in_hands
+                                play.ussr_effects = prior_play_rec.ussr_effects
+                                play.us_effects = prior_play_rec.us_effects
+
                         # deal w/ defectors discard
                         if (
                             data.get("card") == constants.SpecialCards.DEFECTORS

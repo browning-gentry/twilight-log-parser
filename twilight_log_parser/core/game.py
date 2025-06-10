@@ -169,8 +169,8 @@ class Game:
                 else:
                     if getattr(play, key, None) != value:
                         match = False
-            if match is True:
-                return play
+                if match is True:
+                    return play
 
         raise ValueError(f"Cannot find play record for kwargs: {kwargs}")
 
@@ -205,6 +205,14 @@ class Game:
             ar_owner=constants.Side.USSR,
             action_round=0,
             order_in_ar=0,
+        )
+
+    def get_first_headline_play(self) -> Play:
+        """Gets the first headline play for the current turn."""
+        return self.get_last_play_for_kwargs(
+            turn=self.current_turn,
+            action_round=0,
+            headline_order=0,
         )
 
     def get_all_plays_from_last_ar(self) -> List[Play]:
